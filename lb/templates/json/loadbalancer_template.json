@@ -1,0 +1,168 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "loadBalancers_applb_name": {
+            "defaultValue": "applb",
+            "type": "String"
+        },
+        "publicIPAddresses_loadbalancerip_externalid": {
+            "defaultValue": "/subscriptions/f2bbcd61-a6e1-46c2-b5c7-57365b68854c/resourceGroups/rg-exchange/providers/Microsoft.Network/publicIPAddresses/loadbalancerip",
+            "type": "String"
+        },
+        "virtualNetworks_vnet_shared_westus_externalid": {
+            "defaultValue": "/subscriptions/f2bbcd61-a6e1-46c2-b5c7-57365b68854c/resourceGroups/rg-exchange/providers/Microsoft.Network/virtualNetworks/vnet-shared-westus",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "apiVersion": "2022-11-01",
+            "name": "[parameters('loadBalancers_applb_name')]",
+            "location": "westeurope",
+            "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+            },
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "loadbalancepublicip",
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_applb_name')), '/frontendIPConfigurations/loadbalancepublicip')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[parameters('publicIPAddresses_loadbalancerip_externalid')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "backends",
+                        "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancers_applb_name'), 'backends')]",
+                        "properties": {
+                            "loadBalancerBackendAddresses": [
+                                {
+                                    "name": "76b05b03-05c7-4691-8751-f3c44618aacd",
+                                    "properties": {
+                                        "ipAddress": "10.0.2.10",
+                                        "virtualNetwork": {
+                                            "id": "[parameters('virtualNetworks_vnet_shared_westus_externalid')]"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "0135173f-2448-4212-acb1-4710d198dd4d",
+                                    "properties": {
+                                        "ipAddress": "10.0.2.11",
+                                        "virtualNetwork": {
+                                            "id": "[parameters('virtualNetworks_vnet_shared_westus_externalid')]"
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "767914fc-882d-41aa-ae80-7f10b2e2a59d",
+                                    "properties": {
+                                        "ipAddress": "10.0.2.8",
+                                        "virtualNetwork": {
+                                            "id": "[parameters('virtualNetworks_vnet_shared_westus_externalid')]"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "loadbalancerrules",
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_applb_name')), '/loadBalancingRules/loadbalancerrules')]",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_applb_name')), '/frontendIPConfigurations/loadbalancepublicip')]"
+                            },
+                            "frontendPort": 80,
+                            "backendPort": 5000,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 4,
+                            "protocol": "Tcp",
+                            "enableTcpReset": false,
+                            "loadDistribution": "Default",
+                            "disableOutboundSnat": true,
+                            "backendAddressPool": {
+                                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancers_applb_name'), 'backends')]"
+                            },
+                            "backendAddressPools": [
+                                {
+                                    "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancers_applb_name'), 'backends')]"
+                                }
+                            ],
+                            "probe": {
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_applb_name')), '/probes/Health-Check')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "Health-Check",
+                        "id": "[concat(resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_applb_name')), '/probes/Health-Check')]",
+                        "properties": {
+                            "protocol": "Http",
+                            "port": 80,
+                            "requestPath": "/",
+                            "intervalInSeconds": 15,
+                            "numberOfProbes": 1,
+                            "probeThreshold": 1
+                        }
+                    }
+                ],
+                "inboundNatRules": [],
+                "outboundRules": [],
+                "inboundNatPools": []
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers/backendAddressPools",
+            "apiVersion": "2022-11-01",
+            "name": "[concat(parameters('loadBalancers_applb_name'), '/backends')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancers_applb_name'))]"
+            ],
+            "properties": {
+                "loadBalancerBackendAddresses": [
+                    {
+                        "name": "76b05b03-05c7-4691-8751-f3c44618aacd",
+                        "properties": {
+                            "ipAddress": "10.0.2.10",
+                            "virtualNetwork": {
+                                "id": "[parameters('virtualNetworks_vnet_shared_westus_externalid')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "0135173f-2448-4212-acb1-4710d198dd4d",
+                        "properties": {
+                            "ipAddress": "10.0.2.11",
+                            "virtualNetwork": {
+                                "id": "[parameters('virtualNetworks_vnet_shared_westus_externalid')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "767914fc-882d-41aa-ae80-7f10b2e2a59d",
+                        "properties": {
+                            "ipAddress": "10.0.2.8",
+                            "virtualNetwork": {
+                                "id": "[parameters('virtualNetworks_vnet_shared_westus_externalid')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
